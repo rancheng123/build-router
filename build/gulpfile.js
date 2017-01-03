@@ -36,6 +36,10 @@ var _ = require("lodash");                        //类似于underscore的工具
     //pngquant = require('imagemin-pngquant'),            //深度压缩图片     插件
     //cache = require('gulp-cache');                      //只压缩修改图片   插件（只压修改图片，无修改图片 读缓存）
 
+//图片sprite插件
+var spritesmith = require('gulp.spritesmith');
+
+
 
 
 //npm run build pay.all
@@ -175,14 +179,21 @@ Builder.prototype = {
         //提示 
         throwMessage('build Image');
 
-        var copyObj = that.config.image.copy;
+        /*var copyObj = that.config.image.copy;
         _.each(copyObj,function(taskObj,taskName){
             imageCopy({
                 src: taskObj.src,
                 dest: taskObj.dest
             });
+        });*/
+
+
+        //图片精灵
+        var spriteObj = that.config.image.sprite;
+        _.each(spriteObj,function(taskObj,taskName){
+            imageSprite(taskObj);
         });
-       
+
     },
     watch: function(env){
 
@@ -357,6 +368,45 @@ function imageCopy(opts){
         //.pipe(imagemin())
         .pipe(gulp.dest(opts.dest));
 }
+
+//imageSprite
+function imageSprite(opts){
+
+    console.log(opts)
+
+    gulp.src(opts.src)
+        .pipe(spritesmith({
+            //生成后的名字
+            imgName: opts.destFileName,
+            //生成后的对应样式
+            cssName: opts.destCssName,
+            //合并时两个图片的间距
+            padding:5,
+            //图标排列方式
+            algorithm: 'binary-tree',
+
+            //图片样式生成规则
+            cssTemplate: function (data) {
+                console.log(1111111)
+                console.log(data.sprites)
+                var arr=[];
+                data.sprites.forEach(function (sprite) {
+
+                    console.log(sprite)
+                    arr.push(".icon-"+sprite.name+
+                        "{" +
+                        "background-image: url('"+sprite.escaped_image+"');"+
+                        "background-position: "+sprite.px.offset_x+" "+sprite.px.offset_y+";"+
+                        "width:"+sprite.px.width+";"+
+                        "height:"+sprite.px.height+";"+
+                        "}\n");
+                });
+                return arr.join("");
+            }
+        }))
+        .pipe(gulp.dest(opts.dest));
+}
+
 
 
 //设置监控任务

@@ -115,11 +115,32 @@ var config = {
    },
 
    image: {
+      //复制任务
       copy: {
           task1: {
               src: [srcPath + 'images/**/*.*'],
               dest: destPath + 'images/'
           }
+      },
+      //精灵任务
+      sprite: {
+
+          task1: {
+              src: [srcPath + 'images/**/*.*'],
+              dest: destPath + 'images/',
+              //合成后的文件
+              destFileName: 'iconSprite.png',
+              //合成后对应的css文件
+              destCssName: 'iconSprite.css'
+          }
+          /*task2: {
+              src: [srcPath + 'images/icon/!**!/!*.*'],
+              dest: destPath + 'images/',
+              //合成后的文件
+              destFileName: 'iconSprite.png',
+              //合成后对应的css文件
+              destCssName: 'iconSprite.css'
+          }*/
       }
    },
 
