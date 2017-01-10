@@ -11,7 +11,6 @@
             return $.ajax({
                 url: url,
                 type: "GET",
-                async: false,
                 cache: false
             }).then(function(tempText){
 

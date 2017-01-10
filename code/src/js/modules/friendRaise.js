@@ -10,10 +10,17 @@ xbn().module('friendRaise',function(X){
         //发起
         launch: function(){
 
+debugger;
             var testData = [{
                 name: 'product',
                 price: 18
             }];
+
+
+
+
+
+
             //请求模板
             X.view.renderTmpl({
                 url: './template/friendRaise_1.html',
@@ -255,12 +262,6 @@ xbn().module('friendRaise',function(X){
                 }
 
 
-
-
-
-
-
-
             });
         }
     };
@@ -269,5 +270,4 @@ xbn().module('friendRaise',function(X){
     friendRaiseCase[ router.cache.currentRoute.action ]();
 });
 
-//# sourceURL=friendRaise.js
 

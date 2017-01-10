@@ -1,6 +1,4 @@
 
-
-
     var router = (function(Win){
 
         //路由基类
@@ -15,7 +13,6 @@
                     url: opts.url,
                     type: "GET",
                     dataType: "script",
-                    async: false,
                     cache: false
                 }).fail(function(){
                     console.error('请求js'+ opts.url +'失败')
@@ -26,9 +23,6 @@
             parseUrl: function(){
 
                 var that = this;
-
-                console.log(location.hash)
-
 
                 //没有hash
                 if(!location.hash){
