@@ -49,19 +49,43 @@ var spritesmith = require('gulp.spritesmith');
 function Builder(opts){
     this.config = require( opts.path );
 
+    //执行环境
+    this.env = opts.env;
+
+    //默认没有启动监控
+    this.watchStatus = false;
+
+    //开发环境 js压缩配置项
+    this.dev_jsUglifyOpts = {
+        mangle: false,//是否混淆 (混淆之后，名字不能对应上，不好调试)
+        compress: false,//是否完全压缩(设置成true ，会忽略debugger代码)
+        preserveComments: 'all' //保留所有注释
+    };
+    //线上环境 js压缩配置项
+    this.online_jsUglifyOpts = {
+        mangle: true,//是否混淆
+        compress: false,//是否完全压缩(设置成true ，会忽略debugger代码)
+        preserveComments: 'license' //保留所有注释
+    }
+
+
+
+
+
+
 }
 Builder.prototype = {
-    all: function(env){
+    all: function(){
 
         //这样写会写死
         //this.css();
-        this.sass(env);
-        this.js(env);
-        this.html(env);
-        this.image(env);
+        this.sass();
+        this.js();
+        this.html();
+        this.image();
     },
 
-    css: function(env){
+    css: function(){
         var that = this;
         var config = that.config;
 
@@ -76,9 +100,11 @@ Builder.prototype = {
                 dest: taskObj.dest
             });
         });
+
+        that.watch();
     },
 
-    sass: function(env){
+    sass: function(){
 
         var that = this;
 
@@ -95,9 +121,11 @@ Builder.prototype = {
             });
         });
 
+        that.watch();
+
     },
 
-    js: function(env){
+    js: function(){
         
 
         var that = this;
@@ -109,11 +137,11 @@ Builder.prototype = {
         //合并压缩
         var concatObj = that.config.js.concat;
         _.each(concatObj,function(taskObj,taskName){
-            jsConcat({
+            that.jsConcat({
                 src: taskObj.src,
                 destFileName: taskObj.destFileName,
                 dest: taskObj.dest,
-                env: env
+                env: that.env
             });
         });
 
@@ -121,16 +149,12 @@ Builder.prototype = {
         //复制压缩
         var minObj = that.config.js.min;
         _.each(minObj,function(taskObj,taskName){
-            jsMin({
+            that.jsMin({
                 src: taskObj.src,
-                dest: taskObj.dest
+                dest: taskObj.dest,
+                env: that.env
             });
         });
-
-
-
-
-
 
 
         //复制json（假数据）
@@ -142,8 +166,12 @@ Builder.prototype = {
             });
         });
 
+
+        that.watch();
+
+
     },
-    html: function(env){
+    html: function(){
 
         var that = this;
         var config = that.config;
@@ -160,19 +188,10 @@ Builder.prototype = {
             });
         });
 
-
-
-        /*function clearCache(){
-            var srcPath = '../code/src/';
-             var destPath = '../code/dest/';
-             gulp.src(srcPath+'index.html')
-             .pipe(rev())
-             //指定目录（被生成）
-             .pipe(gulp.dest(destPath));
-        }*/
+        that.watch();
 
     },
-    image: function(env){
+    image: function(){
         var that = this;
         var config = that.config;
 
@@ -194,37 +213,40 @@ Builder.prototype = {
             imageSprite(taskObj);
         });
 
-    },
-    watch: function(env){
+        that.watch();
 
-        
+    },
+    watch: function(){
 
         var that = this;
-        var config = that.config;
+        //没有监控，启动监控
+        if(that.watchStatus == false){
 
-         //提示 
-        throwMessage('start Watch');
+            var config = that.config;
 
-        //监控js
-        watchTask(that,that.config.js,that.js);
+            //提示
+            throwMessage('start Watch');
 
-
-        //监控html
-        watchTask(that,that.config.html,that.html);
-
-        //监控sass
-        watchTask(that,that.config.sass,that.sass);
-
-        //监控image
-        watchTask(that,that.config.image,that.image);
+            //监控js
+            watchTask(that,that.config.js,that.js);
 
 
+            //监控html
+            watchTask(that,that.config.html,that.html);
 
+            //监控sass
+            watchTask(that,that.config.sass,that.sass);
+
+            //监控image
+            watchTask(that,that.config.image,that.image);
+
+            that.watchStatus = true;
+        }
     },
 
 
-    //替换路径
-    replaceUrl: function(env){
+    //替换路径(已废弃)
+    replaceUrl: function(){
         var that = this;
 
         //去掉首个/  ,如 /test/src/index.html   -->  test/src/index.html
@@ -261,12 +283,96 @@ Builder.prototype = {
             });
         }))
         .pipe(gulp.dest(dest));
+    },
+
+    //js合并压缩
+    jsConcat: function(opts){
+        var that = this;
+        //开发环境
+        if(that.env == 'dev'){
+            gulp.src( opts.src  )
+                //生成sourceMap（chrome浏览器支持）
+                .pipe(sourcemaps.init())
+                .pipe(concat( opts.destFileName ))//合并后的文件名
+                .pipe(uglify(that.dev_jsUglifyOpts))
+                //生成sourceMap（chrome浏览器支持）
+                .pipe(sourcemaps.write('./source222'))
+                .pipe(gulp.dest( opts.dest ));
+        }
+        //线上环境
+        else{
+            gulp.src( opts.src  )
+                .pipe(concat( opts.destFileName ))//合并后的文件名
+                .pipe(uglify(that.online_jsUglifyOpts))
+                .pipe(gulp.dest( opts.dest ));
+        }
+    },
+
+    //js复制压缩
+    jsMin: function(opts){
+        var that = this;
+        //开发环境
+        if(that.env == 'dev'){
+            gulp.src( opts.src )
+                //生成sourceMap（chrome浏览器支持）
+                .pipe(sourcemaps.init())
+                .pipe(uglify(that.dev_jsUglifyOpts))
+                //生成sourceMap（chrome浏览器支持）
+                .pipe(sourcemaps.write())
+                .pipe(gulp.dest( opts.dest ));
+        }
+        //线上环境
+        else{
+            gulp.src( opts.src )
+                .pipe(uglify(that.online_jsUglifyOpts))
+                .pipe(gulp.dest( opts.dest ));
+        }
+
     }
 
 
 };
 
 module.exports =  Builder;
+
+
+
+/*//js复制压缩
+function jsMin(opts){
+    //开发环境
+    if(opts.env == 'dev'){
+        gulp.src( opts.src )
+            //生成sourceMap（chrome浏览器支持）
+            .pipe(sourcemaps.init())
+            .pipe(uglify({
+                mangle: false,//是否混淆
+                compress: false,//是否完全压缩
+                preserveComments: 'all' //保留所有注释
+            }))
+            //生成sourceMap（chrome浏览器支持）
+            .pipe(sourcemaps.write())
+            .pipe(gulp.dest( opts.dest ));
+    }
+    //线上环境
+    else{
+        gulp.src( opts.src )
+            .pipe(uglify({
+                mangle: true,//是否混淆
+                compress: false,//是否完全压缩
+                preserveComments: 'all' //保留所有注释
+            }))
+            .pipe(gulp.dest( opts.dest ));
+    }
+
+}*/
+
+//复制json（假数据）
+function jsonCopy(opts){
+    gulp.src(opts.src)
+        .pipe(gulp.dest(opts.dest));
+}
+
+
 
 
 
@@ -287,60 +393,8 @@ function sassCompile(opts){
         .pipe(gulp.dest( opts.dest ))
 }
 
-//js合并压缩
-function jsConcat(opts){
 
-    //开发环境
-    if(opts.env == 'dev'){
-        gulp.src( opts.src  )
-            //生成sourceMap（chrome浏览器支持）
-            .pipe(sourcemaps.init())
-            .pipe(concat( opts.destFileName ))//合并后的文件名
-            .pipe(uglify({
-                mangle: true,//是否混淆
-                compress: true,//是否完全压缩
-                preserveComments: 'all' //保留所有注释
-            }))
-            //生成sourceMap（chrome浏览器支持）
-            .pipe(sourcemaps.write())
-            .pipe(gulp.dest( opts.dest ));
-    }
-    //线上环境
-    else{
-        gulp.src( opts.src  )
-            .pipe(concat( opts.destFileName ))//合并后的文件名
-            .pipe(uglify({
-                mangle: true,//是否混淆
-                compress: true,//是否完全压缩
-                preserveComments: 'license' //保留所有注释
-            }))
-            .pipe(gulp.dest( opts.dest ));
-    }
-
-
-
-};
-
-//js复制压缩
-function jsMin(opts){
-    gulp.src( opts.src )
-        .pipe(uglify({
-            mangle: true,//是否混淆
-            compress: true,//是否完全压缩
-            preserveComments: 'all' //保留所有注释
-        }))
-        .pipe(gulp.dest( opts.dest ));
-}
-
-//复制json（假数据）
-function jsonCopy(opts){
-    gulp.src(opts.src)
-        .pipe(gulp.dest(opts.dest));
-}
-
-
-
-//js复制压缩
+//css复制压缩
 function cssMin(opts){
     gulp.src( opts.src )
         .pipe(cssmin({
@@ -356,7 +410,6 @@ function cssMin(opts){
 function htmlCopy(opts){
     gulp.src(opts.src)
         .pipe(rev())
-        //.pipe( ranRev() )
         .pipe(gulp.dest(opts.dest));
 };
 
@@ -371,9 +424,6 @@ function imageCopy(opts){
 
 //imageSprite
 function imageSprite(opts){
-
-    console.log(opts)
-
     gulp.src(opts.src)
         .pipe(spritesmith({
             //生成后的名字
@@ -387,12 +437,9 @@ function imageSprite(opts){
 
             //图片样式生成规则
             cssTemplate: function (data) {
-                console.log(1111111)
-                console.log(data.sprites)
                 var arr=[];
                 data.sprites.forEach(function (sprite) {
 
-                    console.log(sprite)
                     arr.push(".icon-"+sprite.name+
                         "{" +
                         "background-image: url('"+sprite.escaped_image+"');"+

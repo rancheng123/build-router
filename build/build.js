@@ -43,7 +43,8 @@ if( !configPath.hasOwnProperty(app) ){
 
 var Builder = require('./gulpfile');
 var builder = new Builder( {
-	path: configPath[app]
+	path: configPath[app],
+	env: env
 } );
 
 
@@ -57,7 +58,7 @@ if(  !(method in builder)   ){
 
 
 var startTime = new Date().getTime();
-builder[method](env);
+builder[method]();
 var endTime = new Date().getTime();
 console.log( '耗时'+ ((endTime - startTime)/1000) + '秒' )
 
